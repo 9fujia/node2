@@ -1,0 +1,104 @@
+1、搜索、
+	搜索其实还是查询----模糊查询
+	db.collection.find({nickname: /王/})
+	sql.find(database, collection, { nickname: eval('/' + nickname + '/')})
+
+	<div class="input-group pull-left" style="width: 200px;margin-left: 15px;">
+		<div class="input-group-addon">
+			<span class=" glyphicon glyphicon-search"></span>
+		</div>
+		<input type="text" class="form-control" id="searchTxt" placeholder="输入您的昵称搜索" onchange="searchFn()">
+	</div>
+
+	 function searchFn () {
+    var val = $('#searchTxt').val()
+    window.location.href = '/users/search?nickname=' + val;
+  }
+
+	router.get('/search', (req, res, next) => {
+	const { nickname } = req.query;
+	sql.find('sh1811', 'users', { nickname: eval('/'+nickname+'/') }).then(data => {
+			res.render('users', {
+				activeIndex: 2,
+				totalNumber: 1,
+				pageCode: 1,
+				data,
+				pageNumber: data.length
+			})
+	})
+})
+
+分类、
+	router.get('/distinct', (req, res, next) => {
+		sql.distinct('sh1811', 'users', 'age').then(ageArr => {
+			res.send(ageArr)
+		})
+	})   ---- 测试   --- tool/sql.js 添加了distinct方法
+	实际应用在了/users 和 /users/search 这两个路由里
+	router.get('/', function(req, res, next) {
+	let { pageCode, pageNumber } = req.query;
+	pageCode = pageCode * 1 || 1; // 默认是第一页
+	pageNumber = pageNumber * 1 || 8; // 默认每页显示8条数据
+	sql.find('sh1811', 'users', {}).then(data => {
+		const totalNumber = Math.ceil(data.length / pageNumber);
+		data = data.splice((pageCode -  1) * pageNumber, pageNumber)
+		sql.distinct('sh1811', 'users', 'age').then(ageArr => { // -----就是在这
+			res.render('users', { 
+				activeIndex: 2,
+				totalNumber,
+				pageNumber,
+				pageCode,
+				data, 
+				ageArr  // -----就是在这
+			});
+		})
+		
+	}).catch(err => {
+		console.log(err)
+	})
+});
+router.get('/search', (req, res, next) => {
+	const { nickname } = req.query;
+	sql.find('sh1811', 'users', { nickname: eval('/'+nickname+'/') }).then(data => {
+		// res.send(data)
+		sql.distinct('sh1811', 'users', 'age').then(ageArr => {   // -----就是在这
+			res.render('users', {
+				activeIndex: 2,
+				totalNumber: 1,
+				pageCode: 1,
+				data,
+				pageNumber: data.length,
+				ageArr   // -----就是在这
+			})
+		})
+		
+	})
+})
+排序，
+ tool/sql.js 添加了排序的方法
+
+ <a href="/users/sort?type=age&num=1">年龄升序</a>
+	<a href="/users/sort?type=age&num=-1">年龄降序</a>
+
+ router.get('/sort', (req, res, next) => {
+	let { type, num } = req.query;
+	let sortData = {};      // ----------------------
+	sortData[type] = num * 1; // -----------------------
+	sql.sort('sh1811', 'users', sortData).then(data => {
+		// res.send(data)
+		sql.distinct('sh1811', 'users', 'age').then(ageArr => {
+			res.render('users', {
+				activeIndex: 2,
+				totalNumber: 1,
+				pageCode: 1,
+				data,
+				pageNumber: data.length,
+				ageArr
+			})
+		})
+		
+	})
+})
+
+
+登录
